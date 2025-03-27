@@ -28,7 +28,7 @@ BOOL GetProcessList()
     hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     if(hProcessSnap == INVALID_HANDLE_VALUE)
     {
-        printError(TEXT("CreateToolhelp32Snapshot (of processes)"));
+        printError(L"CreateToolhelp32Snapshot (of processes)");
         return(FALSE);
     }
 
@@ -36,16 +36,16 @@ BOOL GetProcessList()
 
     if(!Process32First(hProcessSnap, &pe32))
     {
-        printError(TEXT("Process32First"));
+        printError(L"Process32First");
         CloseHandle(hProcessSnap);
         return(FALSE);
     }
 
     do
     {
-        _tprintf(TEXT("\n\n====================================================="));
-        _tprintf(TEXT("\nPROCESS NAME: %s"),pe32.szExeFile);
-        _tprintf(TEXT("\n\n====================================================="));
+        //std::wcout << L"\n\n=====================================================" << std::endl;
+        std::wcout << L"\nPROCESS NAME:" << pe32.szExeFile << std::endl;
+        //std::wcout << L"\n\n=====================================================" << std::endl;
 
     } while(Process32Next(hProcessSnap, &pe32));
 
@@ -60,3 +60,7 @@ int dodaj(int a, int b) {
 // PYBIND11_MODULE(main_cpp, m) {
 //     m.def("dodaj", &dodaj, "Dodaje dwie liczby");
 // }
+
+void printError(const wchar_t* msg) {
+    std::wcerr << L"Błąd: " << msg << L" (kod " << GetLastError() << L")" << std::endl;
+}
