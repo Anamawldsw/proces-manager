@@ -33,7 +33,21 @@ BOOL GetProcessList()
     }
 
     pe32.dwSize = sizeof(PROCESSENTRY32);
-    
+
+    if(!Process32First(hProcessSnap, &pe32))
+    {
+        printError(TEXT("Process32First"));
+        CloseHandle(hProcessSnap);
+        return(FALSE);
+    }
+
+    do
+    {
+        _tprintf(TEXT("\n\n====================================================="));
+        _tprintf(TEXT("\nPROCESS NAME: %s"),pe32.szExeFile);
+        _tprintf(TEXT("\n\n====================================================="));
+
+    } while(Process32Next(hProcessSnap, &pe32));
 
     return 0;
 }
