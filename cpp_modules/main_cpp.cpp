@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 //#include <pybind11/pybind11.h> //Działa
 
 #include <windows.h>
@@ -43,9 +44,26 @@ BOOL GetProcessList()
 
     do
     {
-        //std::wcout << L"\n\n=====================================================" << std::endl;
-        std::wcout << L"\nPROCESS NAME:" << pe32.szExeFile << std::endl;
-        //std::wcout << L"\n\n=====================================================" << std::endl;
+        std::wcout << L"PROCESS NAME:" << pe32.szExeFile << std::endl;
+
+        dwPriorityClass = 0;
+        hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pe32.th32ProcessID);
+        if(hProcess == NULL)
+            printError(L"OpenProcess");
+        else
+        {
+            dwPriorityClass = GetPriorityClass(hProcess);
+            if(!dwPriorityClass)
+                printError(L"GetPriorityClass");
+            CloseHandle(hProcess);
+        }
+
+        std::wcout << L" Process ID        = "<< std::setw(8) << std::setfill(L'0') << pe32.th32ProcessID << std::endl;
+        std::wcout << L" Thread count      = "<< std::dec << pe32.cntThreads << std::endl;
+        std::wcout << L" Parent process ID = "<< std::setw(8) << std::setfill(L'0') << pe32.th32ParentProcessID << std::endl;
+        std::wcout << L" Priority base     = "<< std::dec << pe32.pcPriClassBase << std::endl;
+        if(dwPriorityClass)
+            std::wcout << L" Priority class    = "<< std::dec << dwPriorityClass << std::endl;
 
     } while(Process32Next(hProcessSnap, &pe32));
 
