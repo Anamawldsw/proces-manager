@@ -8,7 +8,7 @@
 #include <stdio.h>
 
 BOOL GetProcessList();
-// BOOL ListProcessModules(Dword dwPID);
+BOOL ListProcessModules(DWORD dwPID);
 // BOOL ListProcessThreads(Dword dwOwnerPID);
 void printError(TCHAR const* msg);
 //namespace py = pybind11;
@@ -63,18 +63,56 @@ BOOL GetProcessList()
         std::wcout << L" Parent process ID = "<< std::setw(8) << std::setfill(L'0') << pe32.th32ParentProcessID << std::endl;
         std::wcout << L" Priority base     = "<< std::dec << pe32.pcPriClassBase << std::endl;
         if(dwPriorityClass)
-            std::wcout << L" Priority class    = "<< std::dec << dwPriorityClass << std::endl;
+        std::wcout << L" Priority class    = "<< std::dec << dwPriorityClass << std::endl;
         
         //ListProcessModules( pe32.th32ProcessID );
         //ListProcessThreads( pe32.th32ProcessID );
-
+        
     } while(Process32Next(hProcessSnap, &pe32));
-
+    
     CloseHandle(hProcessSnap);
-
-
+    
+    
     return(TRUE);
 }
+
+BOOL ListProcessModules(DWORD dwPID)
+{
+    HANDLE hModuleSnap = INVALID_HANDLE_VALUE;
+    MODULEENTRY32 me32;
+    
+    hModuleSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, dwPID);
+    if(hModuleSnap == INVALID_HANDLE_VALUE)
+    {
+        printError(L"CreateToolhelp32Snapshot (of modules)");
+        return(FALSE);
+    }
+    
+    me32.dwSize = sizeof(MODULEENTRY32);
+    
+    if(!Module32First(hModuleSnap, &me32))
+    {
+        printError(L"Module32First");
+        CloseHandle(hModuleSnap);
+        return(FALSE);
+    }
+    do
+    {
+        std::wcout << L"\n   Module Name:    " << me32.szModule << std::endl; //%s
+        std::wcout << L"   Executable      =" << me32.szExePath << std::endl; //%s
+        std::wcout << L"   Process ID      =" << std::setw(8) << std::setfill(L'0') << me32.th32ProcessID << std::endl;
+        std::wcout << L"   Ref count (g)   =" << std::setw(4) << std::setfill(L'0') << me32.GlblcntUsage << std::endl;
+        std::wcout << L"   Ref count (p)   =" << std::setw(4) << std::setfill(L'0') << me32.ProccntUsage << std::endl;
+        std::wcout << L"   Base address    =" << std::setw(8) << std::setfill(L'0') << me32.th32ProcessID << std::endl;
+
+
+    }while(Module32Next(hModuleSnap, &me32));
+
+
+    CloseHandle(hModuleSnap);
+    return(TRUE);
+}
+
 
 //----------------------------------------
 int dodaj(int a, int b) {
