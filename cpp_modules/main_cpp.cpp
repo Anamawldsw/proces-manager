@@ -44,7 +44,7 @@ BOOL GetProcessList()
 
     do
     {
-        std::wcout << L"PROCESS NAME:" << pe32.szExeFile << std::endl;
+        std::wcout << L">PROCESS NAME: " << pe32.szExeFile << std::endl;
 
         dwPriorityClass = 0;
         hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pe32.th32ProcessID);
@@ -64,10 +64,16 @@ BOOL GetProcessList()
         std::wcout << L" Priority base     = "<< std::dec << pe32.pcPriClassBase << std::endl;
         if(dwPriorityClass)
             std::wcout << L" Priority class    = "<< std::dec << dwPriorityClass << std::endl;
+        
+        //ListProcessModules( pe32.th32ProcessID );
+        //ListProcessThreads( pe32.th32ProcessID );
 
     } while(Process32Next(hProcessSnap, &pe32));
 
-    return 0;
+    CloseHandle(hProcessSnap);
+
+
+    return(TRUE);
 }
 
 //----------------------------------------
