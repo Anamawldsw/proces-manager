@@ -26,6 +26,16 @@ int main() {
         return 1;
     }
 
+    MEMORYSTATUSEX memInfo;
+    memInfo.dwLength = sizeof(memInfo);
+    GlobalMemoryStatusEx(&memInfo);
+    DWORDLONG totalPhysMem = memInfo.ullTotalPhys;
+    DWORDLONG physMemUsedTotal = 0;
+
+    ULONGLONG totalCpuTime = 0;
+    ULONGLONG totalIoRead = 0;
+    ULONGLONG totalIoWrite = 0;
+
     PROCESSENTRY32 pe32;
     pe32.dwSize = sizeof(PROCESSENTRY32);
 
@@ -43,7 +53,9 @@ int main() {
             // RAM usage
             PROCESS_MEMORY_COUNTERS pmc;
             if (GetProcessMemoryInfo(hProcess, &pmc, sizeof(pmc))) {
-                std::wcout << L" RAM (WorkingSet)   = " << pmc.WorkingSetSize / 1024 << L" KB" << std::endl;
+                DWORD ramKB = pmc.WorkingSetSize / 1024;
+                physMemUsedTotal += pmc.WorkingSetSize;
+                std::wcout << L" RAM (WorkingSet)   = " << ramKB << L" KB" << std::endl;
             }
 
             // CPU time
@@ -55,15 +67,20 @@ int main() {
                 uUserTime.LowPart = userTime.dwLowDateTime;
                 uUserTime.HighPart = userTime.dwHighDateTime;
 
-                auto totalCpuTimeMs = (uKernelTime.QuadPart + uUserTime.QuadPart) / 10000;
-                std::wcout << L" CPU time           = " << totalCpuTimeMs << L" ms" << std::endl;
+                ULONGLONG processCpuTime = (uKernelTime.QuadPart + uUserTime.QuadPart) / 10000;
+                totalCpuTime += processCpuTime;
+                std::wcout << L" CPU time           = " << processCpuTime << L" ms" << std::endl;
             }
 
             // Disk I/O
             IO_COUNTERS ioCounters;
             if (GetProcessIoCounters(hProcess, &ioCounters)) {
-                std::wcout << L" IO Read            = " << ioCounters.ReadTransferCount / 1024 << L" KB" << std::endl;
-                std::wcout << L" IO Write           = " << ioCounters.WriteTransferCount / 1024 << L" KB" << std::endl;
+                ULONGLONG readKB = ioCounters.ReadTransferCount / 1024;
+                ULONGLONG writeKB = ioCounters.WriteTransferCount / 1024;
+                totalIoRead += ioCounters.ReadTransferCount;
+                totalIoWrite += ioCounters.WriteTransferCount;
+                std::wcout << L" IO Read            = " << readKB << L" KB" << std::endl;
+                std::wcout << L" IO Write           = " << writeKB << L" KB" << std::endl;
             }
 
             CloseHandle(hProcess);
@@ -76,5 +93,13 @@ int main() {
     } while (Process32Next(hProcessSnap, &pe32));
 
     CloseHandle(hProcessSnap);
+
+    std::wcout << L"====================== SYSTEM TOTAL ======================" << std::endl;
+    std::wcout << L" Total RAM used      = " << physMemUsedTotal / (1024 * 1024) << L" MB ("
+               << (100 * physMemUsedTotal / totalPhysMem) << L"%)" << std::endl;
+    std::wcout << L" Total CPU time      = " << totalCpuTime << L" ms" << std::endl;
+    std::wcout << L" Total IO Read       = " << totalIoRead / (1024 * 1024) << L" MB" << std::endl;
+    std::wcout << L" Total IO Write      = " << totalIoWrite / (1024 * 1024) << L" MB" << std::endl;
+
     return 0;
 }
