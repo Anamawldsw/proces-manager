@@ -36,6 +36,11 @@ int main() {
     ULONGLONG totalIoRead = 0;
     ULONGLONG totalIoWrite = 0;
 
+    DWORD uptimeMs = GetTickCount();
+    SYSTEM_INFO sysInfo;
+    GetSystemInfo(&sysInfo);
+    DWORD numProcessors = sysInfo.dwNumberOfProcessors;
+
     PROCESSENTRY32 pe32;
     pe32.dwSize = sizeof(PROCESSENTRY32);
 
@@ -69,7 +74,9 @@ int main() {
 
                 ULONGLONG processCpuTime = (uKernelTime.QuadPart + uUserTime.QuadPart) / 10000;
                 totalCpuTime += processCpuTime;
-                std::wcout << L" CPU time           = " << processCpuTime << L" ms" << std::endl;
+                double cpuPercent = (double)processCpuTime / (uptimeMs * numProcessors) * 100.0;
+                std::wcout << L" CPU time           = " << processCpuTime << L" ms ("
+                           << std::fixed << std::setprecision(2) << cpuPercent << L"%)" << std::endl;
             }
 
             // Disk I/O
@@ -97,9 +104,24 @@ int main() {
     std::wcout << L"====================== SYSTEM TOTAL ======================" << std::endl;
     std::wcout << L" Total RAM used      = " << physMemUsedTotal / (1024 * 1024) << L" MB ("
                << (100 * physMemUsedTotal / totalPhysMem) << L"%)" << std::endl;
-    std::wcout << L" Total CPU time      = " << totalCpuTime << L" ms" << std::endl;
+    std::wcout << L" Total CPU time      = " << totalCpuTime << L" ms ("
+               << std::fixed << std::setprecision(2)
+               << ((double)totalCpuTime / (uptimeMs * numProcessors)) * 100.0 << L"%)" << std::endl;
     std::wcout << L" Total IO Read       = " << totalIoRead / (1024 * 1024) << L" MB" << std::endl;
     std::wcout << L" Total IO Write      = " << totalIoWrite / (1024 * 1024) << L" MB" << std::endl;
+
+        // CPU clock speed (system-wide)
+    HKEY hKey;
+    LONG lRes = RegOpenKeyExW(HKEY_LOCAL_MACHINE,
+        L"HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
+        0, KEY_READ, &hKey);
+    if (lRes == ERROR_SUCCESS) {
+        DWORD mhz = 0;
+        DWORD size = sizeof(mhz);
+        RegQueryValueExW(hKey, L"~MHz", NULL, NULL, (LPBYTE)&mhz, &size);
+        std::wcout << L" CPU Clock Speed     = " << mhz << L" MHz" << std::endl;
+        RegCloseKey(hKey);
+    }
 
     return 0;
 }
