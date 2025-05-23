@@ -23,12 +23,49 @@ int dodaj(int a, int b) {
 int get_total_cpu_time() {
     return totalCpuTime;
 }
+void init_all_metrics() {
+    totalCpuTime = 0;
+
+    HANDLE hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (hProcessSnap == INVALID_HANDLE_VALUE) return;
+
+    PROCESSENTRY32 pe32;
+    pe32.dwSize = sizeof(PROCESSENTRY32);
+    if (!Process32First(hProcessSnap, &pe32)) {
+        CloseHandle(hProcessSnap);
+        return;
+    }
+
+    do {
+        HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pe32.th32ProcessID);
+        if (hProcess) {
+            FILETIME creationTime, exitTime, kernelTime, userTime;
+            if (GetProcessTimes(hProcess, &creationTime, &exitTime, &kernelTime, &userTime)) {
+                ULARGE_INTEGER uKernelTime, uUserTime;
+                uKernelTime.LowPart = kernelTime.dwLowDateTime;
+                uKernelTime.HighPart = kernelTime.dwHighDateTime;
+                uUserTime.LowPart = userTime.dwLowDateTime;
+                uUserTime.HighPart = userTime.dwHighDateTime;
+
+                ULONGLONG processCpuTime = (uKernelTime.QuadPart + uUserTime.QuadPart) / 10000;
+                totalCpuTime += processCpuTime;
+            }
+            CloseHandle(hProcess);
+        }
+    } while (Process32Next(hProcessSnap, &pe32));
+
+    CloseHandle(hProcessSnap);
+}
+
+
 
 PYBIND11_MODULE(main_cpp, m) {
     m.def("dodaj", &dodaj, "Dodaje dwie liczby");
-    m.def("get_total_cpu_time", &get_total_cpu_time, "Zwraca całkowity czas CPU systemu");}
+    m.def("get_total_cpu_time", &get_total_cpu_time, "Zwraca całkowity czas CPU systemu");
+    m.def("init_all_metrics", &init_all_metrics);
+}
 
-
+    
 
 int main() {
     HANDLE hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
