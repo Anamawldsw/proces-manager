@@ -3,21 +3,32 @@
 #include <windows.h>
 #include <tlhelp32.h>
 #include <psapi.h>
+#pragma comment(lib, "Advapi32.lib")
 
-// #include <pybind11/pybind11.h>
-// namespace py = pybind11;
+
+#include <pybind11/pybind11.h>
+namespace py = pybind11;
 
 void printError(const wchar_t* msg) {
     std::wcerr << L"Błąd: " << msg << L" (kod " << GetLastError() << L")" << std::endl;
 }
 
+
+
+ULONGLONG totalCpuTime = 0;
+
 int dodaj(int a, int b) {
     return a + b;
 }
+int get_total_cpu_time() {
+    return totalCpuTime;
+}
 
-// PYBIND11_MODULE(main_cpp, m) {
-//     m.def("dodaj", &dodaj, "Dodaje dwie liczby");
-// }
+PYBIND11_MODULE(main_cpp, m) {
+    m.def("dodaj", &dodaj, "Dodaje dwie liczby");
+    m.def("get_total_cpu_time", &get_total_cpu_time, "Zwraca całkowity czas CPU systemu");}
+
+
 
 int main() {
     HANDLE hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -32,7 +43,7 @@ int main() {
     DWORDLONG totalPhysMem = memInfo.ullTotalPhys;
     DWORDLONG physMemUsedTotal = 0;
 
-    ULONGLONG totalCpuTime = 0;
+    //ULONGLONG totalCpuTime = 0;
     ULONGLONG totalIoRead = 0;
     ULONGLONG totalIoWrite = 0;
 
@@ -100,7 +111,7 @@ int main() {
     } while (Process32Next(hProcessSnap, &pe32));
 
     CloseHandle(hProcessSnap);
-
+        // SYSTEM TOTAL
     std::wcout << L"====================== SYSTEM TOTAL ======================" << std::endl;
     std::wcout << L" Total RAM used      = " << physMemUsedTotal / (1024 * 1024) << L" MB ("
                << (100 * physMemUsedTotal / totalPhysMem) << L"%)" << std::endl;
@@ -110,7 +121,7 @@ int main() {
     std::wcout << L" Total IO Read       = " << totalIoRead / (1024 * 1024) << L" MB" << std::endl;
     std::wcout << L" Total IO Write      = " << totalIoWrite / (1024 * 1024) << L" MB" << std::endl;
 
-        // CPU clock speed (system-wide)
+
     HKEY hKey;
     LONG lRes = RegOpenKeyExW(HKEY_LOCAL_MACHINE,
         L"HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
@@ -125,3 +136,6 @@ int main() {
 
     return 0;
 }
+
+
+
