@@ -1,15 +1,30 @@
 import sys
 import os
 import time
+import threading
+import tkinter as tk
 
-# Dodaje cpp_modules do ścieżki importu
 sys.path.append(os.path.join(os.path.dirname(__file__), 'cpp_modules'))
 
 import main_cpp
 
-temp = True
-try:
-    while temp:
+
+class MonitorApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("System Monitor")
+
+        self.text = tk.Text(root, width=160, height=80, font=("Courier", 10))
+        self.text.pack()
+
+        self.stop_flag = False
+
+        self.update_loop()
+
+    def update_loop(self):
+        if self.stop_flag:
+            return
+
         prev_cpu = main_cpp.get_total_cpu_time()
         prev_uptime = main_cpp.get_uptime_ms()
 
@@ -28,28 +43,44 @@ try:
         time_delta = (curr_uptime - prev_uptime) * num_cores
         cpu_percent = (cpu_delta / time_delta) * 100 if time_delta > 0 else 0
 
-
-        
-        print("\033[2J", end="")
-        print("\033[H", end="")
-        
-        print("=" * 25, "SYSTEM TOTAL", "=" * 102, flush=True)
-        print(f" Total RAM used      = {ram_used} MB", flush=True)
-        print(f" Total CPU time      = {curr_cpu} ms ({cpu_percent:.2f}%)", flush=True)
-        print(f" Total IO Read       = {io_read} MB", flush=True)
-        print(f" Total IO Write      = {io_write} MB", flush=True)
-
-
         processes = main_cpp.get_process_list()
-        print("=" * 25, "PROCESS LIST", "=" * 102)
-        for proc in processes:
-            print(f"{proc['pid']:>5} | {proc['name']:<40} | "
-                f"RAM: {proc.get('ram_kb', 0):<10} KB | "
-                f"CPU: {proc.get('cpu_time_ms', 0):<10} ms | "
-                f"IO Read: {proc.get('io_read_kb', 0):<10} KB | "
-                f"IO Write: {proc.get('io_write_kb', 0):<10} KB")
-        time.sleep(0.5)
 
-        temp = False
-except KeyboardInterrupt:
-    print("\nMonitoring zakończony.")
+        output = []
+        output.append("=" * 77 + " SYSTEM TOTAL " + "=" * 50)
+        output.append(f" Total RAM used      = {ram_used} MB")
+        output.append(f" Total CPU time      = {curr_cpu} ms ({cpu_percent:.2f}%)")
+        output.append(f" Total IO Read       = {io_read} MB")
+        output.append(f" Total IO Write      = {io_write} MB")
+        output.append("")
+        output.append("=" * 77 + " PROCESS LIST " + "=" * 50)
+        for proc in processes:
+            output.append(
+                f"{proc['pid']:>5} | {proc['name']:<40} | "
+                f"RAM: {proc.get('ram_kb',0):<10} KB | "
+                f"CPU: {proc.get('cpu_time_ms',0):<10} ms | "
+                f"IO Read: {proc.get('io_read_kb',0):<10} KB | "
+                f"IO Write: {proc.get('io_write_kb',0):<10} KB"
+            )
+
+        scroll_pos = self.text.yview()
+
+        self.text.delete(1.0, tk.END)
+        self.text.insert(tk.END, "\n".join(output))
+
+        self.text.yview_moveto(scroll_pos[0])
+
+
+        self.root.after(1000, self.update_loop)
+
+
+def main():
+    root = tk.Tk()
+    app = MonitorApp(root)
+    try:
+        root.mainloop()
+    except KeyboardInterrupt:
+        print("\nMonitoring zakończony.")
+
+
+if __name__ == "__main__":
+    main()
