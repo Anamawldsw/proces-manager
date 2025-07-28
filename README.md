@@ -1,8 +1,7 @@
 # proces-manager
 I developed this as part of one of my student projects.
 
-    Aby program wystartował, należy uruchomić otworzyć terminal w głównym folderze, i wpisać "py main.py" lub Monitor.bat
-    z pythonem przynajmniej 3.13
+    Aby program wystartował, należy otworzyć terminal w głównym folderze, i wpisać "py main.py"
 
     Na dole okna znajduje się menu do wyboru procesu po którym ma być sortowane.
     Domyślnie sortuje od największego, strzałka na dole ekranu służy do odwracania tego.
@@ -14,3 +13,4 @@ Wymagania:
     - pybind11
     - setuptools
     - tkinter
+    - python 3.13+
